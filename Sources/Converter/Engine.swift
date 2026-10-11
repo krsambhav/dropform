@@ -42,7 +42,7 @@ final class ConversionEngine: @unchecked Sendable {
     var hasRunningProcess: Bool { lock.lock(); defer { lock.unlock() }; return process?.isRunning == true }
     func reset() { lock.lock(); cancelled = false; lock.unlock() }
     func cancel() { lock.lock(); cancelled = true; process?.terminate(); lock.unlock() }
-    func run(input: URL, format: String, directory: URL, quality: Int, compress: Bool = false, maxDimension: Int = 0, stripMetadata: Bool = false) throws -> URL {
+    func run(input: URL, format: String, directory: URL, quality: Int, compress: Bool = false, maxDimension: Int = 0, stripMetadata: Bool = false, onSize: @escaping (Int64) -> Void = { _ in }) throws -> URL {
         guard let group = family(for: input), group.outputs.contains(format), let tool = executable(group.engine) else { throw ConversionFailure(message: "No installed engine supports this conversion.") }
         lock.lock(); let engineFailed = failedEngines.contains(tool); lock.unlock()
         if engineFailed { throw ConversionFailure(message: "This conversion engine stopped unexpectedly. Further jobs are paused to prevent repeated crashes. Restart Dropform after repairing the engine.") }
@@ -83,6 +83,16 @@ final class ConversionEngine: @unchecked Sendable {
         process = task
         do { try task.run() } catch { process = nil; lock.unlock(); throw error }
         lock.unlock()
+        let sizeMonitor = DispatchSource.makeTimerSource(queue: DispatchQueue(label: "dropform.output-size"))
+        let trackedOutput = output
+        sizeMonitor.schedule(deadline: .now(), repeating: .milliseconds(250))
+        sizeMonitor.setEventHandler {
+            if let bytes = (try? fm.attributesOfItem(atPath: trackedOutput.path)[.size]) as? NSNumber {
+                onSize(bytes.int64Value)
+            }
+        }
+        sizeMonitor.resume()
+        defer { sizeMonitor.cancel() }
         task.waitUntilExit()
         lock.lock()
         process = nil

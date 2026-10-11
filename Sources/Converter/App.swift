@@ -5,6 +5,8 @@ import UniformTypeIdentifiers
 struct Job: Identifiable {
     let id = UUID()
     let input: URL
+    var quality = 90.0
+    var outputBytes: Int64?
     var format: String
     var status = "Ready"
     var output: URL?
@@ -16,7 +18,6 @@ struct Job: Identifiable {
     @Published var destination = UserDefaults.standard.url(forKey: "outputFolder") ?? FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0] {
         didSet { UserDefaults.standard.set(destination, forKey: "outputFolder") }
     }
-    @Published var quality = 90.0
     @Published var automaticBasket = UserDefaults.standard.object(forKey: "automaticBasket") as? Bool ?? true {
         didSet { UserDefaults.standard.set(automaticBasket, forKey: "automaticBasket") }
     }
@@ -70,12 +71,18 @@ struct Job: Identifiable {
         Task {
             for id in jobs.filter({ $0.output == nil && $0.status != "Unavailable" && (!compress || canCompress($0.input)) }).map(\.id) {
                 guard !cancelling, let index = jobs.firstIndex(where: { $0.id == id }) else { break }
-                jobs[index].status = "Converting"; jobs[index].error = nil
-                let job = jobs[index], folder = destination, value = Int(quality), worker = engine
+                jobs[index].status = "Converting"; jobs[index].error = nil; jobs[index].outputBytes = nil
+                let job = jobs[index], folder = destination, value = Int(job.quality), worker = engine
                 let shrink = compress, dimension = maxDimension, strip = stripMetadata
                 let format = shrink ? canonicalFormat(job.input.pathExtension) : job.format
                 let result = await Task.detached { () -> Result<URL, Error> in
-                    Result { try worker.run(input: job.input, format: format, directory: folder, quality: value, compress: shrink, maxDimension: dimension, stripMetadata: strip) }
+                    Result { try worker.run(input: job.input, format: format, directory: folder, quality: value, compress: shrink, maxDimension: dimension, stripMetadata: strip, onSize: { bytes in
+                        Task { @MainActor in
+                            if let current = self.jobs.firstIndex(where: { $0.id == id }), self.jobs[current].status == "Converting" {
+                                self.jobs[current].outputBytes = bytes
+                            }
+                        }
+                    }) }
                 }.value
                 guard let current = jobs.firstIndex(where: { $0.id == id }) else { continue }
                 switch result {
@@ -83,10 +90,11 @@ struct Job: Identifiable {
                     jobs[current].output = url
                     let original = (try? job.input.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
                     let converted = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+                    jobs[current].outputBytes = Int64(converted)
                     let size = ByteCountFormatter.string(fromByteCount: Int64(converted), countStyle: .file)
                     let saving = original > 0 && converted < original ? " · \(Int((1 - Double(converted) / Double(original)) * 100))% smaller" : ""
                     jobs[current].status = "Done · \(size)\(saving)"
-                case .failure(let error): jobs[current].status = cancelling ? "Cancelled" : "Failed"; jobs[current].error = error.localizedDescription
+                case .failure(let error): jobs[current].outputBytes = nil; jobs[current].status = cancelling ? "Cancelled" : "Failed"; jobs[current].error = error.localizedDescription
                 }
             }
             running = false; cancelling = false

@@ -23,6 +23,7 @@ Drag a file in Finder: a basket appears on the right side of the current screen.
 - Compression in the original format; larger results are not saved
 - Image resizing and video downscaling, quality/audio bitrate controls
 - Optional image/media metadata removal
+- Per-file quality controls and live bytes-written/final output sizes
 - Output folder selection, non-overwriting names, cancellation
 - Adaptive light/dark appearance with shadcn controls
 
@@ -38,7 +39,7 @@ The automatic basket observes macOS's drag pasteboard while the primary mouse bu
 ./scripts/check.sh
 ```
 
-Validated on this Mac: 59 engine tests and 14 interface tests. The engine suite runs real conversions across image, audio, video, Office and subtitle targets, PDF tools, ZIP round trips, resizing, output validation, source preservation, collision-safe naming, invalid input cleanup and active cancellation/recovery. Interface tests cover bridge actions, state updates, keyboard interaction, processing locks and compression eligibility.
+Validated on this Mac: 59 engine tests and 16 interface tests. The engine suite runs real conversions across image, audio, video, Office and subtitle targets, PDF tools, ZIP round trips, resizing, output validation, source preservation, collision-safe naming, invalid input cleanup and active cancellation/recovery. Interface tests cover bridge actions, state updates, keyboard interaction, processing locks and compression eligibility.
 
 A workbench image conversion and output-folder selection were also checked through the running app. The installed release was opened and the manual basket remained visible after closing the workbench. Automatic appearance during a real Finder drag still requires manual verification: the automation environment denied Finder access. These checks do not establish every possible codec/input combination or full production readiness.
 

@@ -76,12 +76,17 @@ final class FileDropWebView: WKWebView {
             if let id = body["id"] as? String, let output = store.jobs.first(where: { $0.id.uuidString == id })?.output { NSWorkspace.shared.activateFileViewerSelecting([output]) }
         case "format":
             if !store.running, let id = body["id"] as? String, let format = body["format"] as? String, let index = store.jobs.firstIndex(where: { $0.id.uuidString == id }), family(for: store.jobs[index].input)?.outputs.contains(format) == true { store.jobs[index].format = format }
+        case "quality":
+            if !store.running && !store.toolRunning, let id = body["id"] as? String,
+               let value = body["value"] as? Double, value.isFinite,
+               let index = store.jobs.firstIndex(where: { $0.id.uuidString == id }), store.jobs[index].output == nil {
+                store.jobs[index].quality = max(40, min(100, value))
+            }
         case "setting":
             guard let key = body["key"] as? String else { return }
             if key == "automaticBasket", let value = body["value"] as? Bool { store.automaticBasket = value; return }
             guard !store.running && !store.toolRunning else { publish(); return }
             switch key {
-            case "quality": if let value = body["value"] as? Double, value.isFinite { store.quality = max(40, min(100, value)) }
             case "maxDimension": if let value = body["value"] as? Int, [0,640,1280,1920,3840].contains(value) { store.maxDimension = value }
             case "stripMetadata": if let value = body["value"] as? Bool { store.stripMetadata = value }
             case "compress": if let value = body["value"] as? Bool { store.compress = value }
@@ -99,11 +104,11 @@ final class FileDropWebView: WKWebView {
             let size = (try? job.input.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
             return ["id": job.id.uuidString, "name": job.input.lastPathComponent, "extension": job.input.pathExtension,
                     "size": ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file),
-                    "format": job.format, "status": job.status, "error": job.error as Any? ?? NSNull(),
+                    "quality": job.quality, "outputBytes": job.outputBytes as Any? ?? NSNull(), "format": job.format, "status": job.status, "error": job.error as Any? ?? NSNull(),
                     "output": job.output != nil, "compressionSupported": canCompress(job.input), "formats": group?.outputs ?? [], "family": group?.name ?? "Unknown"]
         }
         let state: [String: Any] = ["jobs": jobs, "running": store.running, "cancelling": store.cancelling,
-            "compress": store.compress, "quality": store.quality, "maxDimension": store.maxDimension,
+            "compress": store.compress, "maxDimension": store.maxDimension,
             "stripMetadata": store.stripMetadata, "automaticBasket": store.automaticBasket,
             "destination": store.destination.lastPathComponent, "destinationPath": store.destination.path,
             "toolMessage": store.toolMessage as Any? ?? NSNull(), "toolRunning": store.toolRunning,

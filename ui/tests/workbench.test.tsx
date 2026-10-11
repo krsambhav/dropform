@@ -27,3 +27,21 @@ describe('Workbench', () => {
  it('toggles automatic basket preference', () => { fireEvent.click(screen.getByRole('switch',{name:'Automatic drop basket'})); expect(postMessage).toHaveBeenLastCalledWith({action:'setting',key:'automaticBasket',value:false}) })
 
 })
+
+it('shows quality only after adding a supported file and scopes changes to that file', () => {
+ expect(screen.queryByRole('slider')).toBeNull()
+ publish({jobs:[{...file,quality:80},{...file,id:'second',name:'second.png',quality:60}]})
+ const slider = screen.getByRole('slider',{name:'Quality for photo.png'})
+ fireEvent.keyDown(slider,{key:'ArrowRight'})
+ expect(postMessage).toHaveBeenLastCalledWith({action:'quality',id:'fixture-1',value:85})
+ expect(screen.getByRole('slider',{name:'Quality for second.png'}).getAttribute('aria-valuenow')).toBe('60')
+})
+it('shows live output bytes then the final converted size', () => {
+ publish({jobs:[{...file,status:'Converting',outputBytes:125000}],running:true})
+ expect(screen.getByText('Written so far')).toBeTruthy()
+ expect(screen.getByText('125 KB')).toBeTruthy()
+ publish({jobs:[{...file,status:'Done',output:true,outputBytes:250000}]})
+ expect(screen.getByText('Converted')).toBeTruthy()
+ expect(screen.getByText('250 KB')).toBeTruthy()
+ expect(screen.queryByText('Written so far')).toBeNull()
+})
