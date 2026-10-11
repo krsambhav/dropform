@@ -39,7 +39,7 @@ extension Store {
                     defer { try? FileManager.default.removeItem(at: folder) }
                     return Result {
                         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-                        let output = try worker.run(input: job.input, format: format, directory: folder, quality: Int(job.quality), compress: shrink, maxDimension: dimension, stripMetadata: strip)
+                        let output = try worker.run(input: job.input, format: format, directory: folder, quality: Int(job.quality), compress: false, maxDimension: dimension, stripMetadata: strip)
                         return outputSize(output)
                     }
                 }.value
@@ -49,9 +49,9 @@ extension Store {
                 switch result {
                 case .success(let bytes):
                     self.jobs[current].previewBytes = bytes
-                    self.jobs[current].previewState = "Live preview"
-                case .failure:
-                    self.jobs[current].previewState = "Preview unavailable · use Convert"
+                    self.jobs[current].previewState = shrink && bytes >= outputSize(job.input) ? "No reduction at this quality" : "Live preview"
+                case .failure(let error):
+                    self.jobs[current].previewState = error.localizedDescription == "Cancelled" ? "Preview took too long · run conversion" : error.localizedDescription
                 }
             }
             self.previewEngine = nil

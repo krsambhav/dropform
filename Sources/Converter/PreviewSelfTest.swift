@@ -30,6 +30,20 @@ import Foundation
         try await Task.sleep(nanoseconds: 500_000_000)
         guard store.jobs.isEmpty else { throw ConversionFailure(message: "Removed job returned") }
         print("PASS Settings invalidate old previews and removed jobs stay removed")
+        store.compress = true
+        store.add([expected])
+        for _ in 0..<200 {
+            if store.jobs[0].previewBytes != nil { break }
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
+        let recompressed = try ConversionEngine().run(input: expected, format: "jpg", directory: folder, quality: 90)
+        guard store.jobs[0].previewBytes == outputSize(recompressed) else {
+            throw ConversionFailure(message: "Compression preview discarded actual output size")
+        }
+        if outputSize(recompressed) >= outputSize(expected) && store.jobs[0].previewState != "No reduction at this quality" {
+            throw ConversionFailure(message: "Non-shrinking preview was not explained")
+        }
+        print("PASS Compression previews retain actual size even without a reduction")
         return 0
     } catch { print("FAIL Preview: \(error)"); return 1 }
 }
