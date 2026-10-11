@@ -1,5 +1,8 @@
 import AppKit
-if CommandLine.arguments.contains("--self-test") {
+if CommandLine.arguments.contains("--preview-self-test") {
+    Task { @MainActor in exit(await runPreviewSelfTests()) }
+    RunLoop.main.run()
+} else if CommandLine.arguments.contains("--self-test") {
     exit(runSelfTests())
 } else {
     MainActor.assumeIsolated {

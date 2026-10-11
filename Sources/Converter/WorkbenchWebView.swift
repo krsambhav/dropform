@@ -97,6 +97,9 @@ final class FileDropWebView: WKWebView {
             if !store.running && !store.toolRunning, let name = body["name"] as? String, allowed.contains(name) { store.runTool(name) }
         default: break
         }
+        if ["quality", "format", "remove", "clearFinished"].contains(action) || (action == "setting" && body["key"] as? String != "automaticBasket") {
+            store.schedulePreviews()
+        }
     }
     func publish() {
         let jobs: [[String: Any]] = store.jobs.map { job in
@@ -104,7 +107,7 @@ final class FileDropWebView: WKWebView {
             let size = (try? job.input.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
             return ["id": job.id.uuidString, "name": job.input.lastPathComponent, "extension": job.input.pathExtension,
                     "size": ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file),
-                    "quality": job.quality, "outputBytes": job.outputBytes as Any? ?? NSNull(), "format": job.format, "status": job.status, "error": job.error as Any? ?? NSNull(),
+                    "previewBytes": job.previewBytes as Any? ?? NSNull(), "previewState": job.previewState, "quality": job.quality, "outputBytes": job.outputBytes as Any? ?? NSNull(), "format": job.format, "status": job.status, "error": job.error as Any? ?? NSNull(),
                     "output": job.output != nil, "compressionSupported": canCompress(job.input), "formats": availableFormats(for: job.input), "family": group?.name ?? "Unknown"]
         }
         let state: [String: Any] = ["jobs": jobs, "running": store.running, "cancelling": store.cancelling,

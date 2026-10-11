@@ -63,3 +63,12 @@ it('searches format names and selects Word using the keyboard', () => {
  fireEvent.keyDown(search,{key:'Enter'})
  expect(postMessage).toHaveBeenLastCalledWith({action:'format',id:'fixture-1',format:'docx'})
 })
+it('shows actual live preview size before saving a conversion', () => {
+ publish({jobs:[{...file,previewBytes:123000,previewState:'Live preview'}]})
+ expect(screen.getByText('Live preview')).toBeTruthy()
+ expect(screen.getByText('123 KB')).toBeTruthy()
+ expect((screen.getByRole('button',{name:'Convert file'}) as HTMLButtonElement).disabled).toBe(false)
+ publish({jobs:[{...file,previewBytes:null,previewState:'Calculating…'}]})
+ expect(screen.queryByText('123 KB')).toBeNull()
+ expect(screen.getByText('Calculating…')).toBeTruthy()
+})

@@ -8,6 +8,8 @@ struct Job: Identifiable {
     let input: URL
     var quality = 90.0
     var outputBytes: Int64?
+    var previewBytes: Int64?
+    var previewState = ""
     var format: String
     var status = "Ready"
     var output: URL?
@@ -29,6 +31,9 @@ struct Job: Identifiable {
     @Published var cancelling = false
     @Published var toolMessage: String?
     @Published var toolRunning = false
+    var previewTask: Task<Void, Never>?
+    var previewEngine: ConversionEngine?
+    var previewRevision = 0
     let engine = ConversionEngine()
     func runTool(_ operation: String) {
         let panel = NSOpenPanel(); panel.allowsMultipleSelection = true
@@ -39,6 +44,7 @@ struct Job: Identifiable {
         guard panel.runModal() == .OK else { return }
         let inputs = panel.urls.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
         let folder = destination
+        stopPreviews()
         toolRunning = true; toolMessage = "\(operation)…"
         Task {
             let result = await Task.detached { () -> Result<URL, Error> in Result { try FileTools.perform(operation, inputs: inputs, destination: folder) } }.value
@@ -57,6 +63,7 @@ struct Job: Identifiable {
             let available = !formats.isEmpty
             jobs.append(Job(input: url, format: formats.first ?? "", status: available ? "Ready" : "Unavailable", error: group == nil ? "This file type is not supported yet." : available ? nil : "Install \(group!.engine) to convert this file."))
         }
+        schedulePreviews()
     }
     func chooseFiles() {
         let panel = NSOpenPanel(); panel.allowsMultipleSelection = true; panel.canChooseDirectories = false
@@ -69,11 +76,12 @@ struct Job: Identifiable {
         if panel.runModal() == .OK, let url = panel.url { destination = url }
     }
     func convert() {
-        guard !running else { return }; running = true; engine.reset()
+        guard !running else { return }; stopPreviews(); running = true; engine.reset()
         Task {
+            await previewTask?.value
             for id in jobs.filter({ $0.output == nil && $0.status != "Unavailable" && (!compress || canCompress($0.input)) }).map(\.id) {
                 guard !cancelling, let index = jobs.firstIndex(where: { $0.id == id }) else { break }
-                jobs[index].status = "Converting"; jobs[index].error = nil; jobs[index].outputBytes = nil
+                jobs[index].status = "Converting"; jobs[index].error = nil; jobs[index].outputBytes = nil; jobs[index].previewBytes = nil
                 let job = jobs[index], folder = destination, value = Int(job.quality), worker = engine
                 let shrink = compress, dimension = maxDimension, strip = stripMetadata
                 let format = shrink ? canonicalFormat(job.input.pathExtension) : job.format
@@ -198,8 +206,8 @@ struct BasketView: View {
         if previousDown && !down && basketIsAutomatic { DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in if self?.basketIsAutomatic == true { self?.basket.orderOut(nil); self?.basketIsAutomatic = false } } }
         previousDown = down
     }
-    @objc func quit() { store.engine.cancel(); NSApp.terminate(nil) }
-    func applicationWillTerminate(_ notification: Notification) { store.engine.cancel(); timer?.invalidate() }
+    @objc func quit() { store.stopPreviews(); store.engine.cancel(); NSApp.terminate(nil) }
+    func applicationWillTerminate(_ notification: Notification) { store.stopPreviews(); store.engine.cancel(); timer?.invalidate() }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func application(_ sender: NSApplication, openFiles filenames: [String]) { store.add(filenames.map { URL(fileURLWithPath: $0) }); show() }
 }

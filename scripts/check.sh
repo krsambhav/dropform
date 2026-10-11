@@ -8,3 +8,4 @@ npm --prefix ui test
 swift build --disable-sandbox
 BIN_DIR=$(swift build --show-bin-path --disable-sandbox)
 "$BIN_DIR/Dropform" --self-test
+"$BIN_DIR/Dropform" --preview-self-test
