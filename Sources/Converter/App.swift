@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
+import CoreText
 
 struct Job: Identifiable {
     let id = UUID()
@@ -52,8 +53,9 @@ struct Job: Identifiable {
         for url in urls where url.isFileURL {
             guard !jobs.contains(where: { $0.input == url }) else { continue }
             let group = family(for: url)
-            let available = group.flatMap { executable($0.engine) } != nil
-            jobs.append(Job(input: url, format: group?.outputs.first ?? "", status: available ? "Ready" : "Unavailable", error: group == nil ? "This file type is not supported yet." : available ? nil : "Install \(group!.engine) to convert this file."))
+            let formats = availableFormats(for: url)
+            let available = !formats.isEmpty
+            jobs.append(Job(input: url, format: formats.first ?? "", status: available ? "Ready" : "Unavailable", error: group == nil ? "This file type is not supported yet." : available ? nil : "Install \(group!.engine) to convert this file."))
         }
     }
     func chooseFiles() {
@@ -89,7 +91,7 @@ struct Job: Identifiable {
                 case .success(let url):
                     jobs[current].output = url
                     let original = (try? job.input.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-                    let converted = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+                    let converted = outputSize(url)
                     jobs[current].outputBytes = Int64(converted)
                     let size = ByteCountFormatter.string(fromByteCount: Int64(converted), countStyle: .file)
                     let saving = original > 0 && converted < original ? " · \(Int((1 - Double(converted) / Double(original)) * 100))% smaller" : ""
@@ -124,8 +126,8 @@ struct BasketView: View {
     var body: some View {
         VStack(spacing: 10) {
             Image(systemName: "tray.and.arrow.down").font(.system(size: 34, weight: .light)).foregroundStyle(jade)
-            Text("Drop to transform").font(.custom("AvenirNext-DemiBold", size: 17))
-            Text("Your files. A new form.").font(.custom("HelveticaNeue", size: 12)).foregroundStyle(.secondary)
+            Text("Drop to transform").font(.custom("Plus Jakarta Sans", size: 17).weight(.semibold))
+            Text("Your files. A new form.").font(.custom("Plus Jakarta Sans", size: 12)).foregroundStyle(.secondary)
         }.frame(width: 250, height: 156).background(.regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 24))
             .overlay(RoundedRectangle(cornerRadius: 24).strokeBorder(jade.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [5, 5])))
@@ -143,6 +145,9 @@ struct BasketView: View {
     var previousDown = false
     var basketIsAutomatic = false
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let font = Bundle.main.resourceURL?.appendingPathComponent("Fonts/PlusJakartaSans.ttf") {
+            CTFontManagerRegisterFontsForURL(font as CFURL, .process, nil)
+        }
         let mainMenu = NSMenu()
         let appMenu = NSMenu(); let appRoot = NSMenuItem(); appRoot.submenu = appMenu; mainMenu.addItem(appRoot)
         appMenu.addItem(withTitle: "Quit Dropform", action: #selector(quit), keyEquivalent: "q").target = self

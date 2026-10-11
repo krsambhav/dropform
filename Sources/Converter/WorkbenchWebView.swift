@@ -75,7 +75,7 @@ final class FileDropWebView: WKWebView {
         case "reveal":
             if let id = body["id"] as? String, let output = store.jobs.first(where: { $0.id.uuidString == id })?.output { NSWorkspace.shared.activateFileViewerSelecting([output]) }
         case "format":
-            if !store.running, let id = body["id"] as? String, let format = body["format"] as? String, let index = store.jobs.firstIndex(where: { $0.id.uuidString == id }), family(for: store.jobs[index].input)?.outputs.contains(format) == true { store.jobs[index].format = format }
+            if !store.running, let id = body["id"] as? String, let format = body["format"] as? String, let index = store.jobs.firstIndex(where: { $0.id.uuidString == id }), availableFormats(for: store.jobs[index].input).contains(format) { store.jobs[index].format = format }
         case "quality":
             if !store.running && !store.toolRunning, let id = body["id"] as? String,
                let value = body["value"] as? Double, value.isFinite,
@@ -105,7 +105,7 @@ final class FileDropWebView: WKWebView {
             return ["id": job.id.uuidString, "name": job.input.lastPathComponent, "extension": job.input.pathExtension,
                     "size": ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file),
                     "quality": job.quality, "outputBytes": job.outputBytes as Any? ?? NSNull(), "format": job.format, "status": job.status, "error": job.error as Any? ?? NSNull(),
-                    "output": job.output != nil, "compressionSupported": canCompress(job.input), "formats": group?.outputs ?? [], "family": group?.name ?? "Unknown"]
+                    "output": job.output != nil, "compressionSupported": canCompress(job.input), "formats": availableFormats(for: job.input), "family": group?.name ?? "Unknown"]
         }
         let state: [String: Any] = ["jobs": jobs, "running": store.running, "cancelling": store.cancelling,
             "compress": store.compress, "maxDimension": store.maxDimension,

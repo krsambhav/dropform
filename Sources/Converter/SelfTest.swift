@@ -2,6 +2,7 @@ import AppKit
 import PDFKit
 
 func runSelfTests() -> Int32 {
+    setbuf(stdout, nil)
     let fm = FileManager.default
     let root = fm.temporaryDirectory.appendingPathComponent("dropform-tests-" + UUID().uuidString)
     var passed = 0, failed = 0
@@ -32,7 +33,11 @@ func runSelfTests() -> Int32 {
     let srt = root.appendingPathComponent("source.srt")
     let rtf = root.appendingPathComponent("source.rtf")
     let csv = root.appendingPathComponent("source.csv")
+    let email = root.appendingPathComponent("source.eml")
+    let markdown = root.appendingPathComponent("source.md")
     test("Generate fixtures") {
+        try "Subject: Test message\r\nFrom: example@example.com\r\nTo: test@example.com\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\nSGVsbG8gRHJvcGZvcm0=\r\n".write(to: email, atomically: true, encoding: .utf8)
+        try "# Hello Dropform\n\nA **formatted** document.".write(to: markdown, atomically: true, encoding: .utf8)
         try "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"128\" height=\"96\"><rect width=\"128\" height=\"96\" fill=\"green\"/></svg>".write(to: svg, atomically: true, encoding: .utf8)
         try process(executable("magick")!, [svg.path, png.path])
         try process(executable("ffmpeg")!, ["-v","error","-f","lavfi","-i","sine=frequency=440:duration=0.3",wav.path])
@@ -41,7 +46,7 @@ func runSelfTests() -> Int32 {
         try "{\\rtf1\\ansi Hello Dropform.}".write(to: rtf, atomically: true, encoding: .utf8)
         try "Name,Count\nApples,3\nPears,5\n".write(to: csv, atomically: true, encoding: .utf8)
     }
-    for input in [png, wav, mov, srt, rtf, csv] {
+    for input in [png, wav, mov, srt, rtf, csv, markdown, email] {
         guard let group = family(for: input) else { continue }
         for format in group.outputs {
             test("\(group.name): \(input.pathExtension) → \(format)") {
@@ -50,13 +55,26 @@ func runSelfTests() -> Int32 {
                 if group.engine == "ffmpeg" && group.name != "Subtitles" && format != "gif" {
                     try process(executable("ffmpeg")!, ["-v","error","-i",output.path,"-f","null","-"])
                 }
-                if group.name == "Images" && format != "pdf" {
+                if group.name == "Images" && !["pdf", "docx", "doc", "odt", "html"].contains(format) {
                     try process(executable("magick")!, ["identify",output.path])
                 }
-                if group.name == "Subtitles" { try check(try String(contentsOf: output).contains("Hello Dropform"), "Subtitle text missing") }
+                if group.name == "Subtitles" && ["srt", "vtt", "ass", "txt"].contains(format) { try check(try String(contentsOf: output).contains("Hello Dropform"), "Subtitle text missing") }
+                if group.name == "Images" && ["docx", "odt", "html"].contains(format) {
+                    let marker = format == "docx" ? "word/media/" : format == "odt" ? "Pictures/" : "data:image/png;base64"
+                    try check(try Data(contentsOf: output).range(of: Data(marker.utf8)) != nil, "Image missing from document")
+                }
+                if ["Email", "Ebooks & markup"].contains(group.name) && format == "txt" {
+                    try check(try String(contentsOf: output).contains("Hello Dropform"), "Lost message or document text")
+                }
                 if format == "pdf" { try check(PDFDocument(url: output)?.pageCount ?? 0 > 0, "Unreadable PDF") }
             }
         }
+    }
+    test("EPUB → Word preserves readable text") {
+        let epub = try engine.run(input: markdown, format: "epub", directory: root, quality: 80)
+        let docx = try engine.run(input: epub, format: "docx", directory: root, quality: 80)
+        let text = try engine.run(input: docx, format: "txt", directory: root, quality: 80)
+        try check(try String(contentsOf: text).contains("Hello Dropform"), "Lost ebook text")
     }
     test("Presentations: FODP → PPTX → PDF and ODP") {
         let input = root.appendingPathComponent("slide.fodp")
@@ -65,7 +83,7 @@ func runSelfTests() -> Int32 {
         <office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" office:version="1.2" office:mimetype="application/vnd.oasis.opendocument.presentation"><office:body><office:presentation><draw:page draw:name="Slide 1"><draw:frame presentation:class="title"><draw:text-box><text:p>Dropform test</text:p></draw:text-box></draw:frame></draw:page></office:presentation></office:body></office:document>
         """.write(to: input, atomically: true, encoding: .utf8)
         let pptx = try engine.run(input: input, format: "pptx", directory: root, quality: 80)
-        for format in ["pdf", "odp", "pptx"] { try exists(engine.run(input: pptx, format: format, directory: root, quality: 80)) }
+        for format in ["pdf", "odp", "pptx", "ppt", "png", "jpg", "webp"] { try exists(engine.run(input: pptx, format: format, directory: root, quality: 80)) }
     }
     test("Compression produces a smaller valid image") {
         let input = root.appendingPathComponent("large.jpg")
@@ -106,6 +124,34 @@ func runSelfTests() -> Int32 {
             }
         }
         test("PDF compression engine") { try exists(engine.run(input: pdf, format: "pdf", directory: root, quality: 70)) }
+    }
+    if let pdf = pdf {
+        for format in ["png", "jpg", "webp", "tiff", "bmp"] {
+            test("PDF → \(format): all pages and live size") {
+                var reported: Int64 = 0
+                let output = try engine.run(input: pdf, format: format, directory: root, quality: 80, maxDimension: 640, onSize: { reported = $0 })
+                let pages = try fm.contentsOfDirectory(at: output, includingPropertiesForKeys: nil)
+                try check(pages.count == 2, "Missing PDF pages")
+                for page in pages {
+                    guard let image = NSImage(contentsOf: page) else { throw ConversionFailure(message: "Unreadable exported page") }
+                    try check(max(image.size.width, image.size.height) <= 640, "Resize exceeded limit")
+                }
+                try check(reported == outputSize(output) && reported > 0, "Incorrect live/final output size")
+            }
+        }
+        test("Scanned PDF text export fails clearly") {
+            do { _ = try engine.run(input: pdf, format: "docx", directory: root, quality: 80); throw ConversionFailure(message: "Accepted image-only PDF") }
+            catch { try check(error.localizedDescription.contains("no selectable text"), "Wrong scanned-PDF error") }
+        }
+    }
+    for format in ["txt", "rtf", "docx", "doc", "odt", "html"] {
+        test("PDF → \(format): readable text") {
+            let source = try engine.run(input: rtf, format: "pdf", directory: root, quality: 80)
+            let output = try engine.run(input: source, format: format, directory: root, quality: 80)
+            try exists(output)
+            let plain = format == "txt" ? output : try engine.run(input: output, format: "txt", directory: root, quality: 80)
+            try check(try String(contentsOf: plain).contains("Hello Dropform"), "Lost PDF text")
+        }
     }
     test("PDF text extraction") {
         let output = try engine.run(input: rtf, format: "pdf", directory: root, quality: 80)

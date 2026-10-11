@@ -45,3 +45,21 @@ it('shows live output bytes then the final converted size', () => {
  expect(screen.getByText('250 KB')).toBeTruthy()
  expect(screen.queryByText('Written so far')).toBeNull()
 })
+it('explains multipage PDF images and text-only Word conversion', () => {
+ const pdf = {...file, name:'pages.pdf',family:'PDF',extension:'pdf',formats:['png','jpg','docx','doc','pdf'],format:'png'}
+ publish({jobs:[pdf]})
+ expect(screen.getByText('Every page is exported. Multipage PDFs save into a folder.')).toBeTruthy()
+ expect(screen.queryByRole('slider')).toBeNull()
+ publish({jobs:[{...pdf,format:'docx'}]})
+ expect(screen.getByText(/Exports selectable text/)).toBeTruthy()
+})
+it('searches format names and selects Word using the keyboard', () => {
+ publish({jobs:[{...file,formats:['png','jpg','docx'],format:'png'}]})
+ fireEvent.click(screen.getByRole('combobox',{name:'Output format for photo.png'}))
+ const search = screen.getByRole('combobox',{name:'Search output formats for photo.png'})
+ fireEvent.change(search,{target:{value:'word'}})
+ expect(screen.queryByRole('option',{name:/JPEG/})).toBeNull()
+ expect(screen.getByRole('option',{name:/Word document/})).toBeTruthy()
+ fireEvent.keyDown(search,{key:'Enter'})
+ expect(postMessage).toHaveBeenLastCalledWith({action:'format',id:'fixture-1',format:'docx'})
+})

@@ -23,6 +23,7 @@ pathlib.Path('dist/Dropform.app/Contents/Resources/Dropform.icns').write_bytes(b
 ICON
 mkdir -p dist/Dropform.app/Contents/Resources/Workbench
 cp ui/dist/index.html dist/Dropform.app/Contents/Resources/Workbench/index.html
+cp -R Assets/Fonts dist/Dropform.app/Contents/Resources/
 cp -R LICENSES dist/Dropform.app/Contents/Resources/
 BIN_DIR=$(swift build -c release --show-bin-path --disable-sandbox)
 cp "$BIN_DIR/Dropform" dist/Dropform.app/Contents/MacOS/Dropform
