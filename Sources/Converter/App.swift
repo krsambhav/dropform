@@ -34,6 +34,8 @@ struct Job: Identifiable {
     var previewTask: Task<Void, Never>?
     var previewEngine: ConversionEngine?
     var previewRevision = 0
+    var previewArtifacts: [UUID: PreviewArtifact] = [:]
+    let previewWindow = PreviewWindow()
     let engine = ConversionEngine()
     func runTool(_ operation: String) {
         let panel = NSOpenPanel(); panel.allowsMultipleSelection = true

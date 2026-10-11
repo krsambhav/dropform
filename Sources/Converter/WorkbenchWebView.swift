@@ -72,6 +72,10 @@ final class FileDropWebView: WKWebView {
         case "clearFinished": if !store.running { store.jobs.removeAll { $0.output != nil } }
         case "remove":
             if !store.running, let id = body["id"] as? String { store.jobs.removeAll { $0.id.uuidString == id } }
+        case "preview":
+            if let id = body["id"] as? String, let job = store.jobs.first(where: { $0.id.uuidString == id }), let artifact = store.previewArtifacts[job.id] {
+                store.previewWindow.show(job: job, output: artifact.output)
+            }
         case "reveal":
             if let id = body["id"] as? String, let output = store.jobs.first(where: { $0.id.uuidString == id })?.output { NSWorkspace.shared.activateFileViewerSelecting([output]) }
         case "format":
@@ -107,7 +111,7 @@ final class FileDropWebView: WKWebView {
             let size = (try? job.input.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
             return ["id": job.id.uuidString, "name": job.input.lastPathComponent, "extension": job.input.pathExtension,
                     "size": ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file),
-                    "previewBytes": job.previewBytes as Any? ?? NSNull(), "previewState": job.previewState, "quality": job.quality, "outputBytes": job.outputBytes as Any? ?? NSNull(), "format": job.format, "status": job.status, "error": job.error as Any? ?? NSNull(),
+                    "previewAvailable": store.previewArtifacts[job.id] != nil, "previewBytes": job.previewBytes as Any? ?? NSNull(), "previewState": job.previewState, "quality": job.quality, "outputBytes": job.outputBytes as Any? ?? NSNull(), "format": job.format, "status": job.status, "error": job.error as Any? ?? NSNull(),
                     "output": job.output != nil, "compressionSupported": canCompress(job.input), "formats": availableFormats(for: job.input), "family": group?.name ?? "Unknown"]
         }
         let state: [String: Any] = ["jobs": jobs, "running": store.running, "cancelling": store.cancelling,

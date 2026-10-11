@@ -72,3 +72,10 @@ it('shows actual live preview size before saving a conversion', () => {
  expect(screen.queryByText('123 KB')).toBeNull()
  expect(screen.getByText('Calculating…')).toBeTruthy()
 })
+it('opens the ready live preview by job id and disables it during recalculation', () => {
+ publish({jobs:[{...file,previewAvailable:true,previewBytes:123000,previewState:'Live preview'}]})
+ fireEvent.click(screen.getByRole('button',{name:'Open live preview for photo.png'}))
+ expect(postMessage).toHaveBeenLastCalledWith({action:'preview',id:'fixture-1'})
+ publish({jobs:[{...file,previewAvailable:false,previewState:'Calculating…'}]})
+ expect((screen.getByRole('button',{name:'Open live preview for photo.png'}) as HTMLButtonElement).disabled).toBe(true)
+})

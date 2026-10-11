@@ -24,7 +24,13 @@ import Foundation
             throw ConversionFailure(message: "Preview did not match the latest settings, or published a final output")
         }
         print("PASS Live preview matches actual conversion with latest quality")
+        guard let artifact = store.previewArtifacts[store.jobs[0].id], FileManager.default.fileExists(atPath: artifact.output.path), outputSize(artifact.output) == store.jobs[0].previewBytes else {
+            throw ConversionFailure(message: "Viewable preview was not retained")
+        }
+        let previewFolder = artifact.folder
         store.jobs[0].quality = 80; store.schedulePreviews()
+        guard !FileManager.default.fileExists(atPath: previewFolder.path) else { throw ConversionFailure(message: "Old preview was not cleaned up") }
+        print("PASS Viewable output retained until invalidation and cleaned up")
         guard store.jobs[0].previewBytes == nil else { throw ConversionFailure(message: "Stale preview remained visible") }
         store.jobs.removeAll(); store.schedulePreviews()
         try await Task.sleep(nanoseconds: 500_000_000)
