@@ -29,3 +29,10 @@ def collect(p):
     print(name,flush=True)
 with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
     for result in pool.map(collect,recipes): pass
+# Official LibreOffice source corresponding to the bundled release.
+lo=root/'libreoffice';lo.mkdir(exist_ok=True)
+archive=lo/'libreoffice-25.8.2.2.tar.xz'
+if not archive.exists():
+    subprocess.run(['curl','-fL','--retry','3','https://downloadarchive.documentfoundation.org/libreoffice/old/25.8.2.2/src/'+archive.name,'-o',str(archive)],check=True)
+if hashlib.sha256(archive.read_bytes()).hexdigest()!='002ca2eec3df818d3655bc5ab5702263194febc0212f02e12df1eee11bd7c15e':
+    raise RuntimeError('LibreOffice source checksum mismatch')

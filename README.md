@@ -53,3 +53,5 @@ Validated on this Mac: 123 engine tests, 4 live-preview integration checks and 2
 A workbench image conversion and output-folder selection were also checked through the running app. The installed release was opened and the manual basket remained visible after closing the workbench. Automatic appearance during a real Finder drag still requires manual verification: the automation environment denied Finder access. These checks do not establish every possible codec/input combination or full production readiness.
 
 Third-party notices are included under `LICENSES` in the application resources. Bundled conversion engines remain separate programs under their own licenses; their notices and source information are included.
+
+Standalone release verification uses `./scripts/test-bundled.sh`, which denies reads from Homebrew and external LibreOffice and blocks outbound IP networking. `scripts/audit-bundle.py` checks Mach-O dependencies and escaping symlinks. Source archives can be collected with `python3 scripts/collect-engine-sources.py`.
