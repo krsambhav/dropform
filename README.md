@@ -4,7 +4,7 @@ A native personal macOS menu-bar utility for local file conversion and compressi
 
 ## Download and install
 
-Download the Apple Silicon macOS 13+ app from [GitHub Releases](https://github.com/krsambhav/dropform/releases). Open the DMG and drag Dropform to Applications. This early release is not Apple-notarized and requires separately installed conversion engines for full functionality. See the release notes for setup and limitations.
+Download the Apple Silicon macOS 27+ standalone app from [GitHub Releases](https://github.com/krsambhav/dropform/releases). Open the DMG and drag Dropform to Applications. This early release is not Apple-notarized and bundles the conversion engines; no separate engine installation is needed. See the release notes for setup and limitations.
 
 ## Run
 
@@ -13,7 +13,7 @@ Download the Apple Silicon macOS 13+ app from [GitHub Releases](https://github.c
 open dist/Dropform.app
 ```
 
-Building requires macOS 13+, Swift command line tools, Node.js/npm (`npm --prefix ui ci`), and local conversion engines. The app discovers Homebrew FFmpeg, ImageMagick and Ghostscript, Pandoc, and LibreOffice in `/Applications`. It also recognizes this Mac's existing bundled LibreOffice launcher. Engine binaries are not bundled into the app.
+Building requires macOS 13+, Swift command line tools, Node.js/npm (`npm --prefix ui ci`), and local conversion engines. The app discovers Homebrew FFmpeg, ImageMagick and Ghostscript, Pandoc, and LibreOffice in `/Applications`. It also recognizes this Mac's existing bundled LibreOffice launcher. For a standalone package, use `BUNDLE_ENGINES=1 ./scripts/build.sh` followed by `./scripts/package-release.sh`. The bundled release currently requires macOS 27+ because of the packaged engine deployment targets.
 
 Drag a file in Finder: a basket appears on the right side of the current screen. Drop onto it to open the workbench. The menu bar also provides a manual basket action. Closing the window leaves the menu-bar utility running. Quit from its menu.
 
@@ -40,7 +40,7 @@ Drag a file in Finder: a basket appears on the right side of the current screen.
 
 This is a working first version, not complete parity with howtoconvert.co's thousands of conversion routes. MSG email, archive extraction, OCR, visual cropping, vectorization and specialist routes are not implemented. EML exports headers and readable body text; attachments are listed but not extracted. PDF-to-document conversion exports selectable text, not the original layout or images. See [coverage](COVERAGE.md). Installed engine codecs determine which particular files work. Some source formats have no same-format encoder: use Convert with an available target. Lossless formats may not get smaller. Quality/resize/metadata controls apply to relevant image/media engines, not Office documents; PDF quality selects a Ghostscript preset. Multipage image conversions that would produce separate files are rejected instead of silently dropping pages.
 
-The automatic basket observes macOS's drag pasteboard while the primary mouse button is held. Finder file drags are the intended workflow; virtual attachments and drags that do not expose file URLs may not trigger it. A manual menu action is available. Open at login is enabled on first launch and can be changed in Settings. Dropform respects later changes in macOS Login Items; if macOS requires approval, Settings offers a shortcut there. Packaged dependency installation is not included yet.
+The automatic basket observes macOS's drag pasteboard while the primary mouse button is held. Finder file drags are the intended workflow; virtual attachments and drags that do not expose file URLs may not trigger it. A manual menu action is available. Open at login is enabled on first launch and can be changed in Settings. Dropform respects later changes in macOS Login Items; if macOS requires approval, Settings offers a shortcut there. The standalone release includes its conversion engines.
 
 ## Verification
 
@@ -52,4 +52,4 @@ Validated on this Mac: 123 engine tests, 4 live-preview integration checks and 2
 
 A workbench image conversion and output-folder selection were also checked through the running app. The installed release was opened and the manual basket remained visible after closing the workbench. Automatic appearance during a real Finder drag still requires manual verification: the automation environment denied Finder access. These checks do not establish every possible codec/input combination or full production readiness.
 
-Third-party notices are included under `LICENSES` in the application resources. Conversion engines remain separately installed software under their own licenses.
+Third-party notices are included under `LICENSES` in the application resources. Bundled conversion engines remain separate programs under their own licenses; their notices and source information are included.

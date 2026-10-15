@@ -35,12 +35,15 @@ cat > dist/Dropform.app/Contents/Info.plist <<'PLIST'
 <key>CFBundleIdentifier</key><string>local.dropform.app</string>
 <key>CFBundleIconFile</key><string>Dropform</string>
 <key>CFBundleName</key><string>Dropform</string>
-<key>CFBundleVersion</key><string>1</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
-<key>LSMinimumSystemVersion</key><string>13.0</string>
+<key>CFBundleVersion</key><string>2</string>
+<key>CFBundleShortVersionString</key><string>0.2.0</string>
+<key>LSMinimumSystemVersion</key><string>27.0</string>
 <key>LSUIElement</key><true/>
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 PLIST
-codesign --force --sign - dist/Dropform.app
+if [[ "${BUNDLE_ENGINES:-0}" == 1 ]]; then
+  python3 scripts/bundle-engines.py
+fi
+codesign --force --deep --sign - dist/Dropform.app
 printf 'Built dist/Dropform.app\n'

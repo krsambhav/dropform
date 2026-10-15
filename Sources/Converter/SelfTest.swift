@@ -14,7 +14,7 @@ func runSelfTests() -> Int32 {
         catch { failed += 1; print("FAIL \(name): \(error.localizedDescription)") }
     }
     func process(_ executable: String, _ arguments: [String]) throws {
-        let task = Process(); task.executableURL = URL(fileURLWithPath: executable); task.arguments = arguments
+        let task = Process(); task.environment = engineEnvironment(); task.executableURL = URL(fileURLWithPath: executable); task.arguments = arguments
         task.standardOutput = FileHandle.nullDevice; task.standardError = FileHandle.nullDevice
         try task.run(); task.waitUntilExit(); try check(task.terminationStatus == 0, "Fixture generation failed")
     }

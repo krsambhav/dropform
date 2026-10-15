@@ -4,6 +4,8 @@ cd "${0:A:h}/.."
 version=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' dist/Dropform.app/Contents/Info.plist)
 arch=$(lipo -archs dist/Dropform.app/Contents/MacOS/Dropform)
 [[ "$arch" == arm64 ]] || { print -u2 'Expected an arm64 release build'; exit 1; }
+[[ -f dist/Dropform.app/Contents/Resources/Engines/manifest.json ]] || { print -u2 "Bundle engines before packaging: BUNDLE_ENGINES=1 ./scripts/build.sh"; exit 1; }
+python3 scripts/audit-bundle.py
 codesign --verify --deep --strict dist/Dropform.app
 stage=$(mktemp -d "${TMPDIR:-/tmp}/dropform-release.XXXXXX")
 trap 'rm -rf "$stage"' EXIT

@@ -20,6 +20,8 @@ let families: [Family] = [
     Family(name: "Subtitles", icon: "captions.bubble", inputs: ["srt","vtt","ass","ssa","sub"], outputs: ["srt","vtt","ass","txt","docx","pdf"], engine: "ffmpeg")
 ]
 func executable(_ name: String) -> String? {
+    if let bundled = bundledExecutable(name) { return bundled }
+    if let root = bundledEngineRoot, FileManager.default.fileExists(atPath: root.path) { return nil }
     if name == "soffice" {
         let headless = NSHomeDirectory() + "/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/libreoffice-headless/libreoffice/LibreOfficeDev.app/Contents/MacOS/soffice"
         if FileManager.default.isExecutableFile(atPath: headless) { return headless }
@@ -105,7 +107,7 @@ final class ConversionEngine: @unchecked Sendable {
             if format == "mp4" { args += ["-movflags", "+faststart"] }
             args += [output.path]
         }
-        let task = Process(); task.executableURL = URL(fileURLWithPath: tool); task.arguments = args
+        let task = Process(); task.executableURL = URL(fileURLWithPath: tool); task.arguments = args; task.environment = engineEnvironment()
         let log = staging.appendingPathComponent("engine.log")
         fm.createFile(atPath: log.path, contents: nil)
         let handle = try FileHandle(forWritingTo: log); defer { try? handle.close() }

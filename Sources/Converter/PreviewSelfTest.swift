@@ -8,7 +8,7 @@ import Foundation
     do {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let input = folder.appendingPathComponent("gradient.png")
-        let process = Process(); process.executableURL = URL(fileURLWithPath: executable("magick")!)
+        let process = Process(); process.environment = engineEnvironment(); process.executableURL = URL(fileURLWithPath: executable("magick")!)
         process.arguments = ["-size", "1200x800", "gradient:navy-orange", input.path]
         try process.run(); process.waitUntilExit()
         store.add([input]); store.jobs[0].format = "jpg"
