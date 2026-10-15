@@ -24,6 +24,9 @@ struct Job: Identifiable {
     @Published var automaticBasket = UserDefaults.standard.object(forKey: "automaticBasket") as? Bool ?? true {
         didSet { UserDefaults.standard.set(automaticBasket, forKey: "automaticBasket") }
     }
+    @Published var openAtLogin = true
+    @Published var loginNeedsApproval = false
+    @Published var loginError: String?
     @Published var showFormats = false
     @Published var compress = false
     @Published var maxDimension = 0
@@ -158,6 +161,7 @@ struct BasketView: View {
         if let font = Bundle.main.resourceURL?.appendingPathComponent("Fonts/PlusJakartaSans.ttf") {
             CTFontManagerRegisterFontsForURL(font as CFURL, .process, nil)
         }
+        store.initializeLoginItem()
         let mainMenu = NSMenu()
         let appMenu = NSMenu(); let appRoot = NSMenuItem(); appRoot.submenu = appMenu; mainMenu.addItem(appRoot)
         appMenu.addItem(withTitle: "Quit Dropform", action: #selector(quit), keyEquivalent: "q").target = self
@@ -189,6 +193,7 @@ struct BasketView: View {
         if let timer { RunLoop.main.add(timer, forMode: .common) }
         show()
     }
+    func applicationDidBecomeActive(_ notification: Notification) { store.refreshLoginItem() }
     @objc func show() { NSApp.activate(ignoringOtherApps: true); window.makeKeyAndOrderFront(nil) }
     @objc func showBasket() { presentBasket(automatically: false) }
     func presentBasket(automatically: Bool) {

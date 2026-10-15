@@ -65,6 +65,7 @@ final class FileDropWebView: WKWebView {
         case "ready": publish()
         case "chooseFiles": store.chooseFiles()
         case "chooseFolder": if !store.running && !store.toolRunning { store.chooseFolder() }
+        case "loginSettings": store.openLoginSettings()
         case "showBasket": showBasket?()
         case "convert": if !store.running && !store.toolRunning { store.convert() }
         case "cancel": if store.running { store.cancel() }
@@ -88,6 +89,7 @@ final class FileDropWebView: WKWebView {
             }
         case "setting":
             guard let key = body["key"] as? String else { return }
+            if key == "openAtLogin", let value = body["value"] as? Bool { store.setOpenAtLogin(value); return }
             if key == "automaticBasket", let value = body["value"] as? Bool { store.automaticBasket = value; return }
             guard !store.running && !store.toolRunning else { publish(); return }
             switch key {
@@ -116,6 +118,7 @@ final class FileDropWebView: WKWebView {
         }
         let state: [String: Any] = ["jobs": jobs, "running": store.running, "cancelling": store.cancelling,
             "compress": store.compress, "maxDimension": store.maxDimension,
+            "openAtLogin": store.openAtLogin, "loginNeedsApproval": store.loginNeedsApproval, "loginError": store.loginError as Any? ?? NSNull(),
             "stripMetadata": store.stripMetadata, "automaticBasket": store.automaticBasket,
             "destination": store.destination.lastPathComponent, "destinationPath": store.destination.path,
             "toolMessage": store.toolMessage as Any? ?? NSNull(), "toolRunning": store.toolRunning,

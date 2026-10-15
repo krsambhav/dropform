@@ -79,3 +79,13 @@ it('opens the ready live preview by job id and disables it during recalculation'
  publish({jobs:[{...file,previewAvailable:false,previewState:'Calculating…'}]})
  expect((screen.getByRole('button',{name:'Open live preview for photo.png'}) as HTMLButtonElement).disabled).toBe(true)
 })
+it('defaults Open at login on and sends changes through the native bridge', () => {
+ fireEvent.click(screen.getByRole('button',{name:'Settings'}))
+ const toggle = screen.getByRole('switch',{name:'Open at login'})
+ expect(toggle.getAttribute('aria-checked')).toBe('true')
+ fireEvent.click(toggle)
+ expect(postMessage).toHaveBeenLastCalledWith({action:'setting',key:'openAtLogin',value:false})
+ publish({openAtLogin:true,loginNeedsApproval:true})
+ fireEvent.click(screen.getByRole('button',{name:'Open Login Items'}))
+ expect(postMessage).toHaveBeenLastCalledWith({action:'loginSettings'})
+})

@@ -36,7 +36,7 @@ Drag a file in Finder: a basket appears on the right side of the current screen.
 
 This is a working first version, not complete parity with howtoconvert.co's thousands of conversion routes. MSG email, archive extraction, OCR, visual cropping, vectorization and specialist routes are not implemented. EML exports headers and readable body text; attachments are listed but not extracted. PDF-to-document conversion exports selectable text, not the original layout or images. See [coverage](COVERAGE.md). Installed engine codecs determine which particular files work. Some source formats have no same-format encoder: use Convert with an available target. Lossless formats may not get smaller. Quality/resize/metadata controls apply to relevant image/media engines, not Office documents; PDF quality selects a Ghostscript preset. Multipage image conversions that would produce separate files are rejected instead of silently dropping pages.
 
-The automatic basket observes macOS's drag pasteboard while the primary mouse button is held. Finder file drags are the intended workflow; virtual attachments and drags that do not expose file URLs may not trigger it. A manual menu action is available. Login launch and packaged dependency installation are not included yet.
+The automatic basket observes macOS's drag pasteboard while the primary mouse button is held. Finder file drags are the intended workflow; virtual attachments and drags that do not expose file URLs may not trigger it. A manual menu action is available. Open at login is enabled on first launch and can be changed in Settings. Dropform respects later changes in macOS Login Items; if macOS requires approval, Settings offers a shortcut there. Packaged dependency installation is not included yet.
 
 ## Verification
 
@@ -44,7 +44,7 @@ The automatic basket observes macOS's drag pasteboard while the primary mouse bu
 ./scripts/check.sh
 ```
 
-Validated on this Mac: 123 engine tests, 4 live-preview integration checks and 20 interface tests. The engine suite runs real conversions across image, audio, video, Office and subtitle targets, PDF tools, ZIP round trips, resizing, output validation, source preservation, collision-safe naming, invalid input cleanup and active cancellation/recovery. Interface tests cover bridge actions, state updates, keyboard interaction, processing locks and compression eligibility.
+Validated on this Mac: 123 engine tests, 4 live-preview integration checks and 21 interface tests. The engine suite runs real conversions across image, audio, video, Office and subtitle targets, PDF tools, ZIP round trips, resizing, output validation, source preservation, collision-safe naming, invalid input cleanup and active cancellation/recovery. Interface tests cover bridge actions, state updates, keyboard interaction, processing locks and compression eligibility.
 
 A workbench image conversion and output-folder selection were also checked through the running app. The installed release was opened and the manual basket remained visible after closing the workbench. Automatic appearance during a real Finder drag still requires manual verification: the automation environment denied Finder access. These checks do not establish every possible codec/input combination or full production readiness.
 
