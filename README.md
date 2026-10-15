@@ -2,6 +2,10 @@
 
 A native personal macOS menu-bar utility for local file conversion and compression. Offline React/shadcn workbench in WKWebView, AppKit drop basket, no uploads or web server.
 
+## Download and install
+
+Download the Apple Silicon macOS 13+ app from [GitHub Releases](https://github.com/krsambhav/dropform/releases). Open the DMG and drag Dropform to Applications. This early release is not Apple-notarized and requires separately installed conversion engines for full functionality. See the release notes for setup and limitations.
+
 ## Run
 
 ```sh
