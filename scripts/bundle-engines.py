@@ -3,7 +3,7 @@
 import json, os, pathlib, shutil, subprocess, re
 P=pathlib.Path
 root=P('dist/Dropform.app/Contents/Resources/Engines').resolve()
-roots=['ffmpeg','imagemagick','ghostscript','pandoc','python@3.14']
+roots=['librsvg','ffmpeg','imagemagick','ghostscript','pandoc','python@3.14']
 def run(*a): return subprocess.check_output(a,text=True).strip()
 names=sorted(set(roots+run('brew','deps','--union',*roots).splitlines()))
 root.mkdir(parents=True,exist_ok=True)
@@ -15,6 +15,7 @@ for name in names:
         dst.parent.mkdir(parents=True,exist_ok=True)
         shutil.copytree(src,dst,symlinks=True)
     opt=root/'opt'/name; opt.parent.mkdir(exist_ok=True)
+    if opt.is_symlink() and opt.resolve() != dst: opt.unlink()
     if not opt.is_symlink(): opt.symlink_to(os.path.relpath(dst,opt.parent))
     manifest.append({'name':name,'version':src.name})
 lo=P('/Applications/LibreOffice.app')
@@ -41,6 +42,8 @@ for p in root.rglob('*'):
         dep=line.strip().split(' (')[0]
         if dep.startswith('/opt/homebrew/'):
             dest=root/dep.removeprefix('/opt/homebrew/')
+            if not dest.exists():
+                dest=root/P(dep).resolve().relative_to('/opt/homebrew')
             if not dest.exists(): raise RuntimeError(f'Missing {dep} for {p}')
             edits+=['-change',dep,'@loader_path/'+os.path.relpath(dest,p.parent)]
     if edits:

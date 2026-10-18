@@ -4,6 +4,9 @@ let pageImageFormats = ["png", "jpg", "webp", "tiff", "bmp"]
 
 func routeEngines(input: URL, format: String) -> [String] {
     guard let group = family(for: input) else { return [] }
+    if input.pathExtension.lowercased() == "svg" {
+        return ["rsvg-convert", "magick"] + (["docx", "doc", "odt"].contains(format) ? ["soffice"] : [])
+    }
     if group.name == "Email" { return format == "txt" ? ["python3"] : ["python3", "soffice"] }
     if group.name == "Video", format == "webp" { return ["ffmpeg", "magick"] }
     if group.engine == "pandoc" {

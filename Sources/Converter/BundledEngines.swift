@@ -2,7 +2,7 @@ import Foundation
 
 let bundledEngineRoot = Bundle.main.resourceURL?.appendingPathComponent("Engines")
 func bundledExecutable(_ name: String) -> String? {
-    let paths = ["ffmpeg":"opt/ffmpeg/bin/ffmpeg", "magick":"opt/imagemagick/bin/magick", "gs":"opt/ghostscript/bin/gs", "pandoc":"opt/pandoc/bin/pandoc", "python3":"opt/python@3.14/bin/python3.14", "soffice":"LibreOffice.app/Contents/MacOS/soffice"]
+    let paths = ["rsvg-convert":"opt/librsvg/bin/rsvg-convert", "ffmpeg":"opt/ffmpeg/bin/ffmpeg", "magick":"opt/imagemagick/bin/magick", "gs":"opt/ghostscript/bin/gs", "pandoc":"opt/pandoc/bin/pandoc", "python3":"opt/python@3.14/bin/python3.14", "soffice":"LibreOffice.app/Contents/MacOS/soffice"]
     guard let path = paths[name], let url = bundledEngineRoot?.appendingPathComponent(path), FileManager.default.isExecutableFile(atPath: url.path) else { return nil }
     return url.path
 }

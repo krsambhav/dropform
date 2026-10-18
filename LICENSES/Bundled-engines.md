@@ -3,6 +3,7 @@
 Dropform invokes these engines as separate processes. Their copyright and license terms remain those of their respective authors. Original license files, notices and Homebrew recipes are retained in Contents/Resources/Engines/Cellar; LibreOffice's notices are in Engines/LibreOffice.app/Contents/Resources.
 
 - FFmpeg: GPL-3.0-or-later (Homebrew build with GPL codecs). https://ffmpeg.org/legal.html
+- librsvg: LGPL-2.1-or-later; SVG rasterization. https://gitlab.gnome.org/GNOME/librsvg
 - ImageMagick: ImageMagick license. https://imagemagick.org/script/license.php
 - Ghostscript: AGPL-3.0-or-later. https://www.ghostscript.com/licensing/index.html
 - Pandoc: GPL-2.0-or-later. https://pandoc.org

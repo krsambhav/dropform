@@ -50,6 +50,40 @@ final class ConversionEngine: @unchecked Sendable {
     }
     func reset() { lock.lock(); cancelled = false; lock.unlock() }
     func cancel() { lock.lock(); cancelled = true; process?.terminate(); lock.unlock() }
+    private func renderSVG(_ input: URL, to output: URL, in staging: URL) throws {
+        guard let tool = executable("rsvg-convert") else {
+            throw ConversionFailure(message: "SVG conversion requires the librsvg engine (rsvg-convert). Reinstall Dropform or install librsvg for a development build.")
+        }
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: tool)
+        task.arguments = ["--format=png", "--output", output.path, input.path]
+        task.environment = engineEnvironment()
+        let log = staging.appendingPathComponent("svg.log")
+        FileManager.default.createFile(atPath: log.path, contents: nil)
+        let handle = try FileHandle(forWritingTo: log)
+        defer { try? handle.close() }
+        task.standardOutput = handle; task.standardError = handle
+        lock.lock()
+        if cancelled { lock.unlock(); throw ConversionFailure(message: "Cancelled") }
+        if failedEngines.contains(tool) {
+            lock.unlock()
+            throw ConversionFailure(message: "The SVG engine stopped unexpectedly. Restart Dropform after repairing the engine.")
+        }
+        process = task
+        do { try task.run() } catch { process = nil; lock.unlock(); throw error }
+        lock.unlock()
+        task.waitUntilExit()
+        lock.lock()
+        process = nil
+        let wasCancelled = cancelled
+        if task.terminationReason == .uncaughtSignal && !wasCancelled { failedEngines.insert(tool) }
+        lock.unlock()
+        if wasCancelled { throw ConversionFailure(message: "Cancelled") }
+        guard task.terminationStatus == 0, FileManager.default.fileExists(atPath: output.path) else {
+            let detail = (try? String(contentsOf: log)) ?? ""
+            throw ConversionFailure(message: "The SVG engine could not render this file. " + String(detail.suffix(1800)))
+        }
+    }
     func run(input: URL, format: String, directory: URL, quality: Int, compress: Bool = false, maxDimension: Int = 0, stripMetadata: Bool = false, usingPandoc: Bool = false, onSize: @escaping (Int64) -> Void = { _ in }) throws -> URL {
         try checkCancellation()
         if input.pathExtension.lowercased() == "pdf", ["png", "jpg", "webp", "tiff", "bmp", "docx", "doc", "odt", "txt", "rtf", "html"].contains(format) {
@@ -78,7 +112,16 @@ final class ConversionEngine: @unchecked Sendable {
         if engineName == "python3" {
             args = ["-c", EmailExtraction.script, input.path, output.path]
         } else if engineName == "magick" {
-            args = [input.path, "-auto-orient"]
+            // Rasterize SVG with librsvg rather than ImageMagick's internal MVG
+            // renderer, which can abort on valid quadratic paths.
+            var imageInput = input
+            if input.pathExtension.lowercased() == "svg" {
+                let rasterDirectory = staging.appendingPathComponent("svg", isDirectory: true)
+                try fm.createDirectory(at: rasterDirectory, withIntermediateDirectories: true)
+                imageInput = rasterDirectory.appendingPathComponent("render.png")
+                try renderSVG(input, to: imageInput, in: staging)
+            }
+            args = [imageInput.path, "-auto-orient"]
             if maxDimension > 0 { args += ["-resize", "\(maxDimension)x\(maxDimension)>"] }
             if stripMetadata { args += ["-strip"] }
             args += ["-quality", String(quality), output.path]

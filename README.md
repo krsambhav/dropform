@@ -13,7 +13,7 @@ Download the Apple Silicon macOS 27+ standalone app from [GitHub Releases](https
 open dist/Dropform.app
 ```
 
-Building requires macOS 13+, Swift command line tools, Node.js/npm (`npm --prefix ui ci`), and local conversion engines. The app discovers Homebrew FFmpeg, ImageMagick and Ghostscript, Pandoc, and LibreOffice in `/Applications`. It also recognizes this Mac's existing bundled LibreOffice launcher. For a standalone package, use `BUNDLE_ENGINES=1 ./scripts/build.sh` followed by `./scripts/package-release.sh`. The bundled release currently requires macOS 27+ because of the packaged engine deployment targets.
+Building requires macOS 13+, Swift command line tools, Node.js/npm (`npm --prefix ui ci`), and local conversion engines. The app discovers Homebrew FFmpeg, ImageMagick, librsvg (`rsvg-convert`) and Ghostscript, Pandoc, and LibreOffice in `/Applications`. It also recognizes this Mac's existing bundled LibreOffice launcher. For a standalone package, use `BUNDLE_ENGINES=1 ./scripts/build.sh` followed by `./scripts/package-release.sh`. The bundled release currently requires macOS 27+ because of the packaged engine deployment targets.
 
 Drag a file in Finder: a basket appears on the right side of the current screen. Drop onto it to open the workbench. The menu bar also provides a manual basket action. Closing the window leaves the menu-bar utility running. Quit from its menu.
 
@@ -48,7 +48,7 @@ The automatic basket observes macOS's drag pasteboard while the primary mouse bu
 ./scripts/check.sh
 ```
 
-Validated on this Mac: 123 engine tests, 4 live-preview integration checks and 21 interface tests. The engine suite runs real conversions across image, audio, video, Office and subtitle targets, PDF tools, ZIP round trips, resizing, output validation, source preservation, collision-safe naming, invalid input cleanup and active cancellation/recovery. Interface tests cover bridge actions, state updates, keyboard interaction, processing locks and compression eligibility.
+Validated on this Mac: 125 engine tests, 4 live-preview integration checks and 21 interface tests. The engine suite runs real conversions across image, audio, video, Office and subtitle targets, PDF tools, ZIP round trips, resizing, output validation, SVG quadratic paths and transparency, malformed SVG recovery, source preservation, collision-safe naming, invalid input cleanup and active cancellation/recovery. Interface tests cover bridge actions, state updates, keyboard interaction, processing locks and compression eligibility.
 
 A workbench image conversion and output-folder selection were also checked through the running app. The installed release was opened and the manual basket remained visible after closing the workbench. Automatic appearance during a real Finder drag still requires manual verification: the automation environment denied Finder access. These checks do not establish every possible codec/input combination or full production readiness.
 
